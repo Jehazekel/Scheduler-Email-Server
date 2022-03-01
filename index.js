@@ -112,9 +112,9 @@ app.post("/send_email",  (req, res)=>{
         } else{
             const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
             let recipient= "jeremiahstrong321@gmail.com";
-            let name = "not mentioned";
+            let name = "Assessment Scheduler App";
             
-            if( req.body.recipient == null || fullUrl == "jeremiahstrong.web.app" || fullUrl == "jeremiahstrong.firebaseapp.com" ){
+            if( req.body.recipient == null || fullUrl != "https://scheduler-authentication.web.app" || fullUrl != "https://scheduler-authentication.web.app/views/calendar" ){
                  
                  name = req.body.name;
                  
