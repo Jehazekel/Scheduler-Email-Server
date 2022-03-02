@@ -102,8 +102,14 @@ app.use(express.json());
 app.use(express.urlencoded({extended: false}));
 
 
+app.get("/", (req, res)=>{
+    console.log( "requested From", req)
+    res.send("Server is running!")
+})
+
+
 app.post("/send_email",  (req, res)=>{
-    console.log(req.body)
+    console.log(req)
     
     attachmentUpload( req, res, async function(error){
         if (error){
