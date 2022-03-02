@@ -117,23 +117,18 @@ app.post("/send_email",  (req, res)=>{
             return res.send("Error uploading file");
         } else{
             const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-            let recipient= "jeremiahstrong321@gmail.com";
-            let name = "Assessment Scheduler App";
+            let recipient = "jeremiahstrong321@gmail.com";  //default recipient
+            let name = "Assessment Scheduler App";  //default name 
             
-            if( req.body.recipient == null || fullUrl != "https://scheduler-authentication.web.app" || fullUrl != "https://scheduler-authentication.web.app/views/calendar" ){
-                 
-                 name = req.body.name;
-                 
-            }
-            else{
+            if( req.body.recipient != null ){ 
+                name = req.body.name;
                 recipient = req.body.recipient
-
             }
                 
             
             const sender = req.body.email;
             const subject = req.body.subject;
-            const message =`Message From ${fullUrl} \nSender: ${name} (${sender}) \n` + req.body.message;
+            const message = recipient == "jeremiahstrong321@gmail.com" ? "Error occured on the Assessment Scheduler server" : `Message From ${fullUrl} \nSender: ${name} (${sender}) \n` + req.body.message ;
             let attachmentPath = null;
 
     
