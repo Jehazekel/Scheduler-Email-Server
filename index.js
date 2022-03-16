@@ -36,7 +36,7 @@ const createTransporter = async () =>{
         //here we authenticate ourselve to get a refreshToken using our accessToken
         oauth2Client.getAccessToken( (err, token) =>{
             if(err){
-                reject("Failed to create access toekn :( " + err);
+                reject("Failed to create access token :( " + err);
             }
             resolve(token);
         });
@@ -45,9 +45,10 @@ const createTransporter = async () =>{
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
+            
             type: "OAuth2",
             user: process.env.SENDER_EMAIL,
-            pass : accessToken,
+            accessToken : accessToken,
             clientId: process.env.OAUTH_CLIENT_ID,
             clientSecret: process.env.OAUTH_CLIENT_SECRET,
             refreshToken: process.env.OAUTH_REFRESH_TOKEN,
@@ -125,10 +126,10 @@ app.post("/send_email",  (req, res)=>{
                 recipient = req.body.recipient
             }
                 
-            
-            const sender = req.body.email;
+            //If the sender is not present 
+            const sender =`Assessment Scheduler App Notification<${process.env.SENDER_EMAIL}>`;
             const subject = req.body.subject;
-            const message = recipient == "jeremiahstrong321@gmail.com" ? "Error occured on the Assessment Scheduler server" : `Message From ${fullUrl} \nSender: ${name} (${sender}) \n` + req.body.message ;
+            const message =  recipient == "jeremiahstrong321@gmail.com" ? "Error occured on the Assessment Scheduler server" : `Message From \nSender: ${name} (${sender}) \n` + req.body.message ;
             let attachmentPath = null;
 
     
@@ -140,7 +141,7 @@ app.post("/send_email",  (req, res)=>{
     
             //email option
             let mailOptions = {
-                from : process.env.SENDER_EMAIL,
+                from : sender,
                 to: recipient,
                 subject: subject,
                 text: message,
@@ -175,7 +176,7 @@ app.post("/send_email",  (req, res)=>{
     
            } catch(error){
                 console.log(error);
-                return res.send(`{"error": "${err}" }`)
+                return res.send(`{"error": "${error}" }`)
 
            }
     
