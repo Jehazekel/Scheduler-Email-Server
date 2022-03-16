@@ -55,8 +55,12 @@ const createTransporter = async () =>{
         }
     });
 
+    transporter.on('token', (token)=>{
+        console.log(`\n\nOAuth Token has successful refreshed: ${token}\n\n\n`)
+    })
     return transporter;
 };
+
 
 
 
