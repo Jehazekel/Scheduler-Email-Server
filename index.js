@@ -14,7 +14,7 @@ const {google} = require("googleapis");
 const { request } = require("express");
 
 
-
+const { getDBRefValues } = require('./firebase');
 require("dotenv").config();
 
 // to update the node mai with a refresh token each time an email is sending
@@ -108,7 +108,7 @@ app.use(express.urlencoded({extended: false}));
 
 
 app.get("/", (req, res)=>{
-    console.log( "requested From", req)
+    //console.log( "requested From", req)
     res.send("Server is running!")
 })
 
@@ -126,8 +126,8 @@ app.post("/send_email",  (req, res)=>{
             let name = "Assessment Scheduler App";  //default name 
             
             if( req.body.recipient != null ){ 
-                name = req.body.name;
-                recipient = req.body.recipient
+                name =  req.body.name;
+                recipient = await getDBRefValues(`users/${req.body.recipient}/email`) ||  recipient //email admin if invalid request
             }
                 
             //If the sender is not present 
