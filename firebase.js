@@ -4,12 +4,12 @@ require('dotenv').config()
 
 
 
-//const private_key = process.env['private_key'].replace(/\\n/g, '\n') //to replace any "\\" that may be added when saving key
+const private_key = process.env.PRIVATE_KEY.replace(/\\n/g, '\n') //to replace any "\\" that may be added when saving key
 
 const firebaseApp = admin.initializeApp({
   credential: admin.credential.cert({
     "projectId": process.env.PROJECT_ID,
-    "private_key": process.env.PRIVATE_KEY,
+    "private_key": private_key,
     "client_email": process.env.SERVICE_ACC,
   }),
     databaseURL: process.env.DB_URL
