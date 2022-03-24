@@ -88,6 +88,14 @@ const deleteUser = async ( userId) =>{
     if ( !exist ) return false
     else{
       await tableRef.remove()
+      await auth
+        .deleteUser(userId)
+        .then(() => {
+          console.log('Successfully deleted user');
+        })
+        .catch((error) => {
+          console.log('Error deleting user:', error);
+        });
       return true
     }
     
