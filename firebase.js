@@ -58,5 +58,44 @@ const listAllUsers = (nextPageToken) => {
 //listAllUsers();
 //getDBRefValues('courses');
 
+const isAdmin = async (userId)=>{
+  let check = false
+  let tableRef = db.ref(`users/${userId}`)
+  await tableRef.once('value', (snapshot)=>{
+    let result = snapshot.val()
+    if( result && result.email && result.account_type && `${result.account_type}`.toLowerCase() =='admin')
+      check = true
+  })
+  return check
+}
 
-module.exports = { getDBRefValues }
+const userExist = async (userId)=>{
+  let check = false
+  let tableRef = db.ref(`users/${userId}`)
+  await tableRef.once('value', (snapshot)=>{
+    let result = snapshot.val()
+    if( result && result.email && result.account_type)
+      check = true
+  })
+  return check
+}
+
+const deleteUser = async ( userId) =>{
+  try{
+    let tableRef = db.ref(`users/${userId}`)
+    
+    let exist = await userExist(userId)
+    if ( !exist ) return false
+    else{
+      await tableRef.remove()
+      return true
+    }
+    
+  }catch(error){
+    console.log(`Error on delete USer: ${error}`)
+    return false
+  } 
+  
+}
+
+module.exports = { getDBRefValues, isAdmin, deleteUser }

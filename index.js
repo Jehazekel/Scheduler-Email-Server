@@ -14,7 +14,7 @@ const {google} = require("googleapis");
 const { request } = require("express");
 
 
-const { getDBRefValues } = require('./firebase');
+const { getDBRefValues, isAdmin, deleteUser } = require('./firebase');
 require("dotenv").config();
 
 // to update the node mai with a refresh token each time an email is sending
@@ -112,6 +112,28 @@ app.get("/", (req, res)=>{
     res.send("Server is running!")
 })
 
+app.post('/delete/user', async (req, res)=>{
+    console.log(req)
+    if( !req.body.userToDelete || !req.body.currentUser)
+        res.send({"error": "Invalid Request"})
+    else {
+        try{
+            let check = await isAdmin(req.body.currentUser)
+            if( check==false ) res.send({"error": "User not authorized to delete accounts!"}) 
+            else if(check){
+                let deleted = await deleteUser(req.body.userToDelete)
+                if( !deleted ) res.send({"error": "Failed to deleted User"}) 
+                else if (deleted) res.send({"message": "User deleted!"}) 
+            }
+        }
+        catch(error){
+            console.log(`Error occured in delete route: ${error}`)
+            res.send({"error": "Failed to deleted User"}) 
+        }
+    }
+    
+
+})
 
 app.post("/send_email",  (req, res)=>{
     console.log(req)
