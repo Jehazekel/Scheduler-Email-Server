@@ -178,7 +178,7 @@ app.get("/", (req, res)=>{
     res.send("Server is running!")
 })
 
-app.post("type/user", async (req, res)=>{
+app.post("/type/user", async (req, res)=>{
     if(!req.body.currentUser )
         res.send({"error": "Invalid Request"})
     else{
