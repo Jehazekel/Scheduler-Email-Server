@@ -69,6 +69,7 @@ const isAdmin = async (userId)=>{
   return check
 }
 
+//Checks firebase realtime db to see if it exists
 const userExist = async (userId)=>{
   let check = false
   let tableRef = db.ref(`users/${userId}`)
@@ -80,6 +81,38 @@ const userExist = async (userId)=>{
   return check
 }
 
+//Updates firebase realtime DB with user 'name', 'account_type' & 'email'
+//& updates firebase Auth with user new email & password 
+const editUserAccount = async (userData) =>{
+  try{
+    let tableRef = db.ref(`users/${userData.userToUpdate}`)
+    
+    let exist = await userExist(userData.userToUpdate)
+    if ( !exist ) return false
+    else{
+      await tableRef.set({ name : userData.name, email : userData.email, account_type: userData.account_type})
+      await auth.updateUser(userData.userToUpdate, {
+        email: userData.email,
+        password: userData.password
+      })
+      .then((userRecord) => {
+        // See the UserRecord reference doc for the contents of userRecord.
+        console.log('\nSuccessfully updated user', userRecord.toJSON());
+      })
+      .catch((error) => {
+        console.log('\nError updating user:', error);
+      });
+      return true
+    }
+    
+  }catch(error){
+    console.log(`\nError on editing USer: ${error}`)
+    return false
+  } 
+  
+}
+
+//Deletes user from firebase auth and realtime db if it exists in realtime db
 const deleteUser = async ( userId) =>{
   try{
     let tableRef = db.ref(`users/${userId}`)
@@ -106,4 +139,4 @@ const deleteUser = async ( userId) =>{
   
 }
 
-module.exports = { getDBRefValues, isAdmin, deleteUser }
+module.exports = { getDBRefValues, isAdmin, deleteUser, editUserAccount }

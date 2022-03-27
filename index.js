@@ -14,49 +14,115 @@ const {google} = require("googleapis");
 const { request } = require("express");
 
 
-const { getDBRefValues, isAdmin, deleteUser } = require('./firebase');
+const { getDBRefValues, isAdmin, deleteUser, editUserAccount } = require('./firebase');
+const { isStringObject } = require("util/types");
 require("dotenv").config();
 
 // to update the node mai with a refresh token each time an email is sending
 const OAuth2 = google.auth.OAuth2;  
-//createTransporter to connect to the playground
-const createTransporter = async () =>{
-    //connects our application to Google Playground: used for updating refreshToken
-    const oauth2Client = new OAuth2(
-        process.env.OAUTH_CLIENT_ID,
-        process.env.OAUTH_CLIENT_SECRET,
-        "https://developers.google.com/oauthplayground"
-    );
-    
-    oauth2Client.setCredentials({
-        refresh_token: process.env.OAUTH_REFRESH_TOKEN,
-    });
+const oauth2Client = new OAuth2(
+    process.env.OAUTH_CLIENT_ID,
+    process.env.OAUTH_CLIENT_SECRET,
+    "https://developers.google.com/oauthplayground"
+);
 
-    const accessToken = await new Promise( (resolve, reject) =>{
+var access_token = process.env.OAUTH_ACCESS_TOKEN
+// set auth as a global default
+google.options({
+    auth: oauth2Client
+});
+
+oauth2Client.setCredentials({
+    refresh_token: process.env.OAUTH_REFRESH_TOKEN,
+});
+
+ const getNewAccessToken = async( )=>{ 
+     console.log('Running getNewAccessToken()...')
+    return await new Promise( (resolve, reject) => {
         //here we authenticate ourselve to get a refreshToken using our accessToken
         oauth2Client.getAccessToken( (err, token) =>{
             if(err){
                 reject("Failed to create access token :( " + err);
             }
+            //oauth2Client.setCredentials({})
             resolve(token);
         });
-    } );
+    }) 
+}
 
+
+//createTransporter to connect to the playground
+const createTransporter = async () =>{
+    //connects our application to Google Playground: used for updating refreshToken
+    // const oauth2Client = new OAuth2(
+    //     process.env.OAUTH_CLIENT_ID,
+    //     process.env.OAUTH_CLIENT_SECRET,
+    //     "https://developers.google.com/oauthplayground"
+    // );
+
+    // // set auth as a global default
+    // google.options({
+    //     auth: oauth2Client
+    // });
+    
+    // oauth2Client.setCredentials({
+    //     refresh_token: process.env.OAUTH_REFRESH_TOKEN,
+    // });
+    
+    // oauth2Client.getAccessToken()
+    // oauth2Client.on('tokens', (tokens) => {
+    //     if (tokens.refresh_token) {
+    //       // store the refresh_token in my database!
+    //       console.log("OAuth2Client Access Token",tokens.refresh_token);
+    //     }
+    //     console.log(tokens.access_token);
+    //   });
+
+    // const accessToken = await new Promise( (resolve, reject) =>{
+    //     //here we authenticate ourselve to get a refreshToken using our accessToken
+    //     oauth2Client.getAccessToken( (err, token) =>{
+    //         if(err){
+    //             reject("Failed to create access token :( " + err);
+    //         }
+    //         //oauth2Client.setCredentials({})
+    //         resolve(token);
+    //     });
+    // } );
+
+    //console.log('\n\n\nAccess Token', accessToken)
     const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-            
+            // type: 'login',
+            // user : process.env.SENDER_EMAIL,
+            // pass: 'F@1ryt@1l'
             type: "OAuth2",
             user: process.env.SENDER_EMAIL,
-            accessToken : accessToken,
+            accessToken : access_token,
             clientId: process.env.OAUTH_CLIENT_ID,
             clientSecret: process.env.OAUTH_CLIENT_SECRET,
             refreshToken: process.env.OAUTH_REFRESH_TOKEN,
+            //accessUrl: 'https://developers.google.com/oauthplayground'
         }
     });
-
-    transporter.on('token', (token)=>{
-        console.log(`\n\nOAuth Token has successful refreshed: ${token}\n\n\n`)
+    
+    console.log('\n\n\nAFTER \n\n')
+    transporter.on('token', token => {
+        console.log('\n\nA new access token was generated');
+        console.log('User: %s', token.user);
+        console.log('Access Token: %s', token.accessToken);
+        console.log('Expires: %s', new Date(token.expires));
+    });
+    transporter.set('oauth2_provision_cb',(user, renew)=>{
+        if( renew ){
+            console.log('NodeMail Token needs refreshing for ' + user)
+            let newToken = getNewAccessToken()
+            console.log( 'Generated new Token: ', newToken == access_token)
+            
+            if( isStringObject(newToken) && !newToken.includes('invalid') )
+                access_token = newToken
+            return access_token
+        }
     })
     return transporter;
 };
@@ -112,8 +178,42 @@ app.get("/", (req, res)=>{
     res.send("Server is running!")
 })
 
+app.post("type/user", async (req, res)=>{
+    if(!req.body.currentUser )
+        res.send({"error": "Invalid Request"})
+    else{
+        let check = await isAdmin(req.body.currentUser)
+        res.send({"result" : check})
+    }
+})
+
+
+app.post('/edit/user', async (req, res)=>{
+    //console.log(req)
+    if( !req.body.userData || !req.body.currentUser || !req.body.userData.userToUpdate )
+        res.send({"error": "Invalid Request"})
+    else {
+        try{
+            let check = await isAdmin(req.body.currentUser)
+            if( check==false ) res.send({"error": "User not authorized to edit accounts!"}) 
+            else if(check){
+                let edited = await editUserAccount(req.body.userData)
+                if( !edited ) res.send({"error": "Failed to edit User"}) 
+                else if (edited) res.send({"message": "User account edit!"}) 
+            }
+        }
+        catch(error){
+            console.log(`Error occured in edit route: ${error}`)
+            res.send({"error": "Failed to edit User"}) 
+        }
+    }
+    
+
+})
+
+
 app.post('/delete/user', async (req, res)=>{
-    console.log(req)
+    //console.log(req)
     if( !req.body.userToDelete || !req.body.currentUser)
         res.send({"error": "Invalid Request"})
     else {
@@ -136,17 +236,19 @@ app.post('/delete/user', async (req, res)=>{
 })
 
 app.post("/send_email",  (req, res)=>{
-    console.log(req)
+    //console.log(req)
     
     attachmentUpload( req, res, async function(error){
         if (error){
             console.log(error);
             return res.send("Error uploading file");
-        } else{
+        } else if( !req.body.message || !req.body.subject ) res.send(`{"error": "Invalid request. Please Ensure all necessary variables are added." }`)
+        else{
             const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
             let recipient = "jeremiahstrong321@gmail.com";  //default recipient
             let name = "Assessment Scheduler App";  //default name 
-            
+            let isDefaultEmail = true
+
             if( req.body.recipient != null ){ 
                 name =  req.body.name;
                 recipient = await getDBRefValues(`users/${req.body.recipient}/email`) ||  recipient //email admin if invalid request
@@ -155,11 +257,11 @@ app.post("/send_email",  (req, res)=>{
             //If the sender is not present 
             const sender =`Assessment Scheduler App Notification<${process.env.SENDER_EMAIL}>`;
             const subject = req.body.subject;
-            const message =  recipient == "jeremiahstrong321@gmail.com" ? "Error occured on the Assessment Scheduler server" : `Message From \nSender: ${name} (${sender}) \n` + req.body.message ;
+            const message =   req.body.message ;
             let attachmentPath = null;
 
     
-            console.log("recipient:", recipient);
+            console.log("\nrecipient:", recipient);
             console.log("subject:", subject);
             console.log("message:", message);
             
@@ -188,8 +290,8 @@ app.post("/send_email",  (req, res)=>{
                 
                 emailTransporter.sendMail(mailOptions, function(err, data){
                     if(err){
-                        console.log(err)
-                        return res.send(`{"error": "${err}" }`)
+                        console.log(`Error while attempting to send email: ${err}`)
+                        return res.send(`{"error": "Failed to send email to ${recipient}." }`)
                     }
                     else{
                         console.log(`\n\nData: ${JSON.stringify(data)}`)
@@ -202,7 +304,7 @@ app.post("/send_email",  (req, res)=>{
     
            } catch(error){
                 console.log(error);
-                return res.send(`{"error": "${error}" }`)
+                return res.send(`{"error": "Failed to send email to ${recipient}." }`)
 
            }
     
