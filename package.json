@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "unit-test": "jest  --force-exit"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "nodemailer": "^6.7.2"
   },
   "devDependencies": {
+    "jest": "^27.5.1",
     "nodemon": "^2.0.15"
   }
 }

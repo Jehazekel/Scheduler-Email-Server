@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const { initializeApp} = require('firebase-admin/app');
+//const { initializeApp} = require('firebase-admin/app');
 require('dotenv').config()
 
 
@@ -112,6 +112,49 @@ const editUserAccount = async (userData) =>{
   
 }
 
+const editMyAccount = async (userData) =>{
+  try{
+    let tableRef = db.ref(`users/${userData.userToUpdate}`)
+    
+    let exist = await userExist(userData.userToUpdate)
+    if ( !exist ) return false
+    else{
+      await tableRef.set({ name : userData.name, email : userData.email, account_type: userData.account_type})
+
+      if(  userData.hasNewPassword )
+        await auth.updateUser(userData.userToUpdate, {
+          email: userData.email,
+          password: userData.password
+        })
+        .then((userRecord) => {
+          // See the UserRecord reference doc for the contents of userRecord.
+          console.log('\nSuccessfully updated user', userRecord.toJSON());
+        })
+        .catch((error) => {
+          console.log('\nError updating user:', error);
+        });
+      else
+        await auth.updateUser(userData.userToUpdate, {
+          email: userData.email
+        })
+        .then((userRecord) => {
+          // See the UserRecord reference doc for the contents of userRecord.
+          console.log('\nSuccessfully updated user', userRecord.toJSON());
+        })
+        .catch((error) => {
+          console.log('\nError updating user:', error);
+        });
+        
+      return true
+    }
+    
+  }catch(error){
+    console.log(`\nError on editing USer: ${error}`)
+    return false
+  } 
+  
+}
+
 //Deletes user from firebase auth and realtime db if it exists in realtime db
 const deleteUser = async ( userId) =>{
   try{
@@ -139,4 +182,4 @@ const deleteUser = async ( userId) =>{
   
 }
 
-module.exports = { getDBRefValues, isAdmin, deleteUser, editUserAccount }
+module.exports = { getDBRefValues, isAdmin, deleteUser, editUserAccount, userExist, editMyAccount }

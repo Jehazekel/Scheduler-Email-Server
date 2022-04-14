@@ -11,10 +11,9 @@ const rootDirectory = path.dirname(require.main.filename ); //returns the direct
 const nodemailer = require("nodemailer");
 const multer = require("multer"); //for handleing Multipart forms ONLY
 const {google} = require("googleapis");
-const { request } = require("express");
 
 
-const { getDBRefValues, isAdmin, deleteUser, editUserAccount } = require('./firebase');
+const { getDBRefValues, isAdmin, deleteUser, editUserAccount, editMyAccount, userExist } = require('./firebase');
 const { isStringObject } = require("util/types");
 require("dotenv").config();
 
@@ -45,6 +44,8 @@ oauth2Client.setCredentials({
                 reject("Failed to create access token :( " + err);
             }
             //oauth2Client.setCredentials({})
+            process.env.OAUTH_ACCESS_TOKEN = token
+            console.log('New Token ', token)
             resolve(token);
         });
     }) 
@@ -114,6 +115,7 @@ const createTransporter = async () =>{
         console.log('Expires: %s', new Date(token.expires));
     });
     transporter.set('oauth2_provision_cb',(user, renew)=>{
+        console.log("Calling oauth2 callback", user, renew)
         if( renew ){
             console.log('NodeMail Token needs refreshing for ' + user)
             let newToken = getNewAccessToken()
@@ -187,7 +189,7 @@ app.post("/type/user", async (req, res)=>{
     }
 })
 
-
+//Allows and adminstrator to edit any User account
 app.post('/edit/user', async (req, res)=>{
     //console.log(req)
     if( !req.body.userData || !req.body.currentUser || !req.body.userData.userToUpdate )
@@ -203,7 +205,7 @@ app.post('/edit/user', async (req, res)=>{
             }
         }
         catch(error){
-            console.log(`Error occured in edit route: ${error}`)
+            console.log(`Error occured in 'edit/user' route: ${error}`)
             res.send({"error": "Failed to edit User"}) 
         }
     }
@@ -212,6 +214,31 @@ app.post('/edit/user', async (req, res)=>{
 })
 
 
+app.post('/edit/myaccount', async (req, res)=>{
+    //console.log(req)
+    if( !req.body.userToUpdate )
+        res.send({"error": "Invalid Request"})
+    else {
+        try{
+            let check = await userExist(req.body.userToUpdate)
+            if( check==false ) res.send({"error": "User account not found!"}) 
+            else if(check){
+                let edited = await editMyAccount(req.body)
+                if( !edited ) res.send({"error": "Failed to edit User Account!"}) 
+                else if (edited) res.send({"message": "User account edit!"}) 
+            }
+        }
+        catch(error){
+            console.log(`Error occured in 'edit/myaccount' route: ${error}`)
+            res.send({"error": "Failed to edit User"}) 
+        }
+    }
+    
+
+})
+
+
+//allows the admin to delete any user
 app.post('/delete/user', async (req, res)=>{
     //console.log(req)
     if( !req.body.userToDelete || !req.body.currentUser)
