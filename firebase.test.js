@@ -48,7 +48,7 @@ describe('./firebase.js Testcases:', ()=>{
         
     })
 
-    test('Test 3.0: Check if a user is exists (using existing userID)', async()=>{
+    test('Test 3.1: Check if a user is exists (using non-existing userID)', async()=>{
 
         let userId = 'reradsadasd'
         let response = await firebase.userExist(userId) 
@@ -77,15 +77,9 @@ describe('./firebase.js Testcases:', ()=>{
 
     test('Test 5.0: Delete a user account (using a valid userID)', async()=>{
 
-        let userData =  {
-          "userToUpdate" : "dX87L2xMQPbMOj1wcvirwbSo37q2",
-          "email" : "jeremiahstrong321@gmail.com",
-          "name" : "Jeremiah",
-          "password" : "password",
-          "account_type" : "Admin"
-          }
+        let userId  = 'XhYQTwO60XNuqc7vMIlvSupbUsA2'
           
-        let response = await firebase.editUserAccount(userData) 
+        let response = await firebase.deleteUser(userId) 
         
         expect(response).toBe(true)
         //return Promise.resolve(true)
@@ -94,17 +88,11 @@ describe('./firebase.js Testcases:', ()=>{
 
     test('Test 5.1: Delete a user account (using an invalid userID)', async()=>{
 
-        let userData =  {
-          "userToUpdate" : "reradsadasd",
-          "email" : "random@gmail.com",
-          "name" : "radmon guy",
-          "password" : "password1",
-          "account_type" : "Admin"
-          }
+        let userId  = 'reradsadasd'
           
-        let response = await firebase.editUserAccount(userData) 
+        let response = await firebase.deleteUser(userId) 
         
-        expect(response).toBe(false)
+        expect(response).toBe(true)
         //return Promise.resolve(true)
         
     })
